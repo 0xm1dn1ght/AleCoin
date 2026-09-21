@@ -1,86 +1,86 @@
-# AleCoin Smart Contract Implementation Plan
+# План реализации: смарт-контракт AleCoin
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Для агентов-исполнителей:** ОБЯЗАТЕЛЬНЫЙ SUB-SKILL: используйте superpowers:subagent-driven-development (рекомендуется) или superpowers:executing-plans для выполнения плана по задачам. Шаги отмечаются чекбоксами (`- [ ]`).
 
-**Goal:** Build, test, and prepare for deployment the `AleCoin.sol` ERC-20 contract with its signature-based `claimReward` mechanic, on Polygon Amoy testnet.
+**Цель:** Написать, протестировать и подготовить к деплою контракт `AleCoin.sol` (ERC-20 с механикой `claimReward` на основе подписи) в тестовой сети Polygon Amoy.
 
-**Architecture:** A Hardhat 3 project (TypeScript) with one contract (`AleCoin.sol`, OpenZeppelin ERC-20 + Ownable + EIP712 base), one Mocha/Chai test suite covering standard transfers and the claim mechanic, and a Hardhat Ignition deployment module parameterized per network (Amoy testnet, Polygon mainnet). No frontend in this plan — that is a separate, later plan that consumes this contract's deployed address and ABI.
+**Архитектура:** Проект на Hardhat 3 (TypeScript) с одним контрактом (`AleCoin.sol`, база — OpenZeppelin ERC20 + Ownable + EIP712), одним набором тестов на Mocha/Chai (стандартные переводы + механика claim), и модулем деплоя Hardhat Ignition, параметризованным по сети (тестовая Amoy, основная Polygon). Фронтенда в этом плане нет — это отдельный, следующий план, который будет использовать задеплоенный адрес контракта и его ABI.
 
-**Tech Stack:** Hardhat 3, `@nomicfoundation/hardhat-toolbox-mocha-ethers` (ethers v6 + Mocha + Chai matchers), OpenZeppelin Contracts 5.x, Solidity 0.8.28, Hardhat Ignition for deployment, TypeScript.
+**Стек:** Hardhat 3, `@nomicfoundation/hardhat-toolbox-mocha-ethers` (ethers v6 + Mocha + Chai matchers), OpenZeppelin Contracts 5.x, Solidity 0.8.28, Hardhat Ignition для деплоя, TypeScript.
 
-**Spec:** `docs/superpowers/specs/2026-09-21-alecoin-design.md`
+**Спецификация:** `docs/superpowers/specs/2026-09-21-alecoin-design.md`
 
-## Global Constraints
+## Общие ограничения
 
-- Network: Polygon Amoy for all testing/first deployment; Polygon mainnet later (spec: "Сеть").
-- Token: standard ERC-20, fixed total supply, fully minted to the owner address at deploy time (spec: "Токен").
-- `claimReward(address to, uint256 amount, uint256 nonce, bytes signature)` must verify the signature was produced by the contract owner over `(to, amount, nonce)` via EIP-712 (spec's deferred decision, resolved: "предпочтителен EIP-712 как более безопасный и читаемый в MetaMask").
-- Nonce uniqueness is enforced via `mapping(uint256 => bool) usedNonces` — nonces are arbitrary values generated off-chain (client-side), not a sequential on-chain counter (spec's deferred decision, resolved: client-generated random nonce, since claims are per-recipient and don't need global ordering).
-- No backend server, no database — all verification happens in the contract (spec: "Ключевая механика").
-- Revert reasons use plain `require(condition, "AleCoin: ...")` strings, not custom Solidity errors — keeps failures readable for someone new to Solidity (Anton has no professional dev background).
-- Deployer's/owner's private key never touches this codebase or an agent's hands — `.env` is gitignored, and the actual live-network deploy step is run manually by the project owner, not automated.
-- No code comments except where a WHY is genuinely non-obvious (e.g. a specific EIP-712 quirk) — identifiers should carry the meaning.
+- Сеть: Polygon Amoy для всей разработки и тестирования; Polygon mainnet — позже (спека: «Сеть»).
+- Токен: стандартный ERC-20, фиксированный total supply, весь объём минтится на адрес владельца при деплое (спека: «Токен»).
+- `claimReward(address to, uint256 amount, uint256 nonce, bytes signature)` должен проверять, что подпись над `(to, amount, nonce)` сделана владельцем контракта, через EIP-712 (открытый в спеке вопрос, решён: «предпочтителен EIP-712 как более безопасный и читаемый в MetaMask»).
+- Уникальность nonce обеспечивается через `mapping(uint256 => bool) usedNonces` — nonce это произвольное значение, генерируемое на клиенте (не последовательный счётчик на контракте) — открытый в спеке вопрос, решён: клиент сам генерирует случайный nonce, так как claim-ы независимы друг от друга и не требуют общего порядка.
+- Никакого backend-сервера и базы данных — вся проверка происходит в контракте (спека: «Ключевая механика»).
+- Причины отката (revert) — обычные строки через `require(condition, "AleCoin: ...")`, а не кастомные Solidity-ошибки — так ошибки проще читать тому, кто только начинает с Solidity.
+- Приватный ключ владельца/деплоера никогда не попадает в этот код или к агенту — `.env` в `.gitignore`, а реальный деплой в живую сеть выполняется вручную владельцем проекта, не автоматически.
+- Без комментариев в коде, кроме случаев, где WHY действительно не очевиден (например, специфика EIP-712) — имена сами должны нести смысл.
 
 ---
 
-## File Structure
+## Структура файлов
 
 ```
 AleCoin/
-  hardhat.config.ts          # Hardhat config: solidity version, plugins, networks
-  package.json                # npm scripts: compile, test
-  .env.example                 # documents required env vars, no real secrets
+  hardhat.config.ts          # конфиг Hardhat: версия solidity, плагины, сети
+  package.json                # npm-скрипты: compile, test
+  .env.example                 # документирует нужные переменные окружения, без реальных секретов
   contracts/
-    AleCoin.sol                # the ERC-20 + claimReward contract
+    AleCoin.sol                # контракт ERC-20 + claimReward
   test/
-    AleCoin.ts                 # Mocha/Chai test suite
+    AleCoin.ts                 # набор тестов на Mocha/Chai
   ignition/
     modules/
-      AleCoin.ts                # Ignition deployment module
+      AleCoin.ts                # модуль деплоя Ignition
     parameters/
-      amoy.json                 # owner address + initial supply for Amoy
-      polygon.json               # owner address + initial supply for mainnet
+      amoy.json                 # адрес владельца + initial supply для Amoy
+      polygon.json               # адрес владельца + initial supply для mainnet
 ```
 
-`.gitignore` already covers `node_modules/`, `.env`, `cache/`, `artifacts/`, `typechain-types/`, `coverage/` (set up in a prior session). Hardhat 3's default `cache/` and `artifacts/` directory names match, so no changes needed there. `ignition/deployments/` is **not** gitignored — after a real (non-simulated) deploy, the address records it writes there should be committed as a record of what's live.
+`.gitignore` уже покрывает `node_modules/`, `.env`, `cache/`, `artifacts/`, `typechain-types/`, `coverage/` (настроено в прошлой сессии). Названия папок `cache/` и `artifacts/` по умолчанию в Hardhat 3 совпадают, менять ничего не нужно. `ignition/deployments/` — **не** в `.gitignore`: после реального (не симулированного) деплоя записи об адресе оттуда нужно закоммитить как учёт того, что реально задеплоено.
 
 ---
 
-### Task 1: Scaffold the Hardhat 3 project
+### Задача 1: Каркас проекта на Hardhat 3
 
-**Files:**
-- Create: `hardhat.config.ts`
-- Create: `package.json` (and lockfile, via npm)
-- Create: `.gitignore` additions (verify existing entries still correct)
-- Test: none (smoke-tested via `npx hardhat compile`)
+**Файлы:**
+- Создать: `hardhat.config.ts`
+- Создать: `package.json` (и lock-файл, через npm)
+- Создать: дополнения в `.gitignore` (проверить, что текущие записи всё ещё верны)
+- Тест: нет (проверяется через `npx hardhat compile`)
 
-**Interfaces:**
-- Produces: a working Hardhat 3 project where `npx hardhat compile` runs without configuration errors, with `@nomicfoundation/hardhat-toolbox-mocha-ethers` and `@openzeppelin/contracts` installed. Later tasks depend on this.
+**Интерфейсы:**
+- Результат: рабочий проект на Hardhat 3, где `npx hardhat compile` выполняется без ошибок конфигурации, с установленными `@nomicfoundation/hardhat-toolbox-mocha-ethers` и `@openzeppelin/contracts`. От этого зависят все следующие задачи.
 
-- [ ] **Step 1: Initialize the Hardhat project**
+- [ ] **Шаг 1: Инициализировать проект Hardhat**
 
-Run from `D:\rxr\MyProject\AleCoin`:
+Выполнить из `D:\rxr\MyProject\AleCoin`:
 
 ```bash
 npx hardhat --init --template minimal
 ```
 
-If that flag errors (CLI surface may have shifted), fall back to the interactive form and choose: TypeScript project, npm as package manager, current directory as project root:
+Если флаг вызовет ошибку (CLI мог немного измениться) — использовать интерактивный вариант и выбрать: проект на TypeScript, npm как менеджер пакетов, текущая папка как корень проекта:
 
 ```bash
 npx hardhat --init
 ```
 
-- [ ] **Step 2: Install the toolbox and OpenZeppelin**
+- [ ] **Шаг 2: Установить toolbox и OpenZeppelin**
 
 ```bash
 npm install --save-dev @nomicfoundation/hardhat-toolbox-mocha-ethers dotenv
 npm install @openzeppelin/contracts@latest
 ```
 
-- [ ] **Step 3: Configure `hardhat.config.ts`**
+- [ ] **Шаг 3: Настроить `hardhat.config.ts`**
 
-Replace its contents with:
+Заменить содержимое на:
 
 ```typescript
 import "dotenv/config";
@@ -111,9 +111,9 @@ export default defineConfig({
 });
 ```
 
-`chainType: "l1"` means "standard EVM transaction handling" here — Polygon PoS is not an OP-stack rollup like Optimism/Base, so it doesn't need special L2 transaction typing.
+`chainType: "l1"` здесь означает «стандартная обработка EVM-транзакций» — Polygon PoS не является OP-stack роллапом вроде Optimism/Base, поэтому особая типизация L2-транзакций не нужна.
 
-- [ ] **Step 4: Create `.env.example`**
+- [ ] **Шаг 4: Создать `.env.example`**
 
 ```
 AMOY_RPC_URL=
@@ -122,12 +122,12 @@ POLYGON_RPC_URL=
 POLYGON_PRIVATE_KEY=
 ```
 
-- [ ] **Step 5: Verify compile runs clean**
+- [ ] **Шаг 5: Проверить, что компиляция проходит чисто**
 
-Run: `npx hardhat compile`
-Expected: succeeds (it's fine if it reports zero contracts to compile — `contracts/` is still empty at this point).
+Выполнить: `npx hardhat compile`
+Ожидается: успех (нормально, если сообщит «ноль контрактов для компиляции» — `contracts/` пока пуст).
 
-- [ ] **Step 6: Commit**
+- [ ] **Шаг 6: Коммит**
 
 ```bash
 git add hardhat.config.ts package.json package-lock.json .env.example .gitignore
@@ -141,19 +141,19 @@ EOF
 
 ---
 
-### Task 2: Base ERC-20 contract with fixed supply
+### Задача 2: Базовый ERC-20 контракт с фиксированным supply
 
-**Files:**
-- Create: `contracts/AleCoin.sol`
-- Test: `test/AleCoin.ts`
+**Файлы:**
+- Создать: `contracts/AleCoin.sol`
+- Тест: `test/AleCoin.ts`
 
-**Interfaces:**
-- Consumes: OpenZeppelin `ERC20`, `Ownable` (from `@openzeppelin/contracts`, installed in Task 1).
-- Produces: `AleCoin` contract with constructor `constructor(uint256 initialSupply, address initialOwner)`, standard ERC-20 surface (`balanceOf`, `transfer`, `totalSupply`, etc.), `name() == "AleCoin"`, `symbol() == "ALE"`, `owner()` from `Ownable`. Later tasks (claim logic) build on this file and this test file.
+**Интерфейсы:**
+- Использует: OpenZeppelin `ERC20`, `Ownable` (из `@openzeppelin/contracts`, установлен в Задаче 1).
+- Результат: контракт `AleCoin` с конструктором `constructor(uint256 initialSupply, address initialOwner)`, стандартный набор ERC-20 (`balanceOf`, `transfer`, `totalSupply` и т.д.), `name() == "AleCoin"`, `symbol() == "ALE"`, `owner()` из `Ownable`. Следующие задачи (логика claim) достраиваются поверх этого файла и этого файла тестов.
 
-- [ ] **Step 1: Write the failing test**
+- [ ] **Шаг 1: Написать падающий тест**
 
-Create `test/AleCoin.ts`:
+Создать `test/AleCoin.ts`:
 
 ```typescript
 import { expect } from "chai";
@@ -203,14 +203,14 @@ describe("AleCoin", function () {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Шаг 2: Запустить тест и убедиться, что он падает**
 
-Run: `npx hardhat test`
-Expected: FAIL — `AleCoin` contract not found / compile error, since `contracts/AleCoin.sol` doesn't exist yet.
+Выполнить: `npx hardhat test`
+Ожидается: FAIL — контракт `AleCoin` не найден / ошибка компиляции, так как `contracts/AleCoin.sol` ещё не существует.
 
-- [ ] **Step 3: Write the minimal contract**
+- [ ] **Шаг 3: Написать минимальный контракт**
 
-Create `contracts/AleCoin.sol`:
+Создать `contracts/AleCoin.sol`:
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -229,12 +229,12 @@ contract AleCoin is ERC20, Ownable {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Шаг 4: Запустить тест и убедиться, что он проходит**
 
-Run: `npx hardhat test`
-Expected: PASS — all 4 tests green.
+Выполнить: `npx hardhat test`
+Ожидается: PASS — все 4 теста зелёные.
 
-- [ ] **Step 5: Commit**
+- [ ] **Шаг 5: Коммит**
 
 ```bash
 git add contracts/AleCoin.sol test/AleCoin.ts
@@ -248,19 +248,19 @@ EOF
 
 ---
 
-### Task 3: `claimReward` with EIP-712 signature verification
+### Задача 3: `claimReward` с проверкой подписи через EIP-712
 
-**Files:**
-- Modify: `contracts/AleCoin.sol`
-- Modify: `test/AleCoin.ts`
+**Файлы:**
+- Изменить: `contracts/AleCoin.sol`
+- Изменить: `test/AleCoin.ts`
 
-**Interfaces:**
-- Consumes: OpenZeppelin `EIP712`, `ECDSA` (from `@openzeppelin/contracts/utils/cryptography/`).
-- Produces: `claimReward(address to, uint256 amount, uint256 nonce, bytes calldata signature)` external function; `usedNonces(uint256) view returns (bool)` public mapping getter; `event RewardClaimed(address indexed to, uint256 amount, uint256 nonce)`. The EIP-712 domain is `{ name: "AleCoin", version: "1", chainId, verifyingContract: <token address> }` with type `Claim(address to,uint256 amount,uint256 nonce)` — the frontend plan (later) signs against this exact domain/type.
+**Интерфейсы:**
+- Использует: OpenZeppelin `EIP712`, `ECDSA` (из `@openzeppelin/contracts/utils/cryptography/`).
+- Результат: внешняя функция `claimReward(address to, uint256 amount, uint256 nonce, bytes calldata signature)`; публичный геттер `usedNonces(uint256) view returns (bool)`; событие `event RewardClaimed(address indexed to, uint256 amount, uint256 nonce)`. EIP-712 домен — `{ name: "AleCoin", version: "1", chainId, verifyingContract: <адрес токена> }` с типом `Claim(address to,uint256 amount,uint256 nonce)` — фронтенд (в следующем плане) должен подписывать именно этот домен/тип.
 
-- [ ] **Step 1: Write the failing test**
+- [ ] **Шаг 1: Написать падающий тест**
 
-Add to `test/AleCoin.ts`, inside the top-level `describe("AleCoin", ...)` block, a new nested `describe`:
+Добавить в `test/AleCoin.ts`, внутрь верхнеуровневого блока `describe("AleCoin", ...)`, новый вложенный `describe`:
 
 ```typescript
   describe("claimReward", function () {
@@ -304,14 +304,14 @@ Add to `test/AleCoin.ts`, inside the top-level `describe("AleCoin", ...)` block,
   });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Шаг 2: Запустить тест и убедиться, что он падает**
 
-Run: `npx hardhat test`
-Expected: FAIL — `token.claimReward is not a function`.
+Выполнить: `npx hardhat test`
+Ожидается: FAIL — `token.claimReward is not a function`.
 
-- [ ] **Step 3: Implement `claimReward`**
+- [ ] **Шаг 3: Реализовать `claimReward`**
 
-Replace `contracts/AleCoin.sol` with:
+Заменить `contracts/AleCoin.sol` на:
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -359,12 +359,12 @@ contract AleCoin is ERC20, Ownable, EIP712 {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Шаг 4: Запустить тест и убедиться, что он проходит**
 
-Run: `npx hardhat test`
-Expected: PASS — all tests green, including the new `claimReward` test.
+Выполнить: `npx hardhat test`
+Ожидается: PASS — все тесты зелёные, включая новый тест `claimReward`.
 
-- [ ] **Step 5: Commit**
+- [ ] **Шаг 5: Коммит**
 
 ```bash
 git add contracts/AleCoin.sol test/AleCoin.ts
@@ -378,19 +378,19 @@ EOF
 
 ---
 
-### Task 4: Reject replayed nonces and forged signatures
+### Задача 4: Отклонение повторных nonce и поддельных подписей
 
-**Files:**
-- Modify: `test/AleCoin.ts`
+**Файлы:**
+- Изменить: `test/AleCoin.ts`
 
-No contract changes are expected — Task 3's `claimReward` already contains both checks. This task exists to prove it, per the spec's test plan ("повторный claim с тем же nonce", "claim с поддельной подписью").
+Изменений в контракте не ожидается — `claimReward` из Задачи 3 уже содержит обе проверки. Эта задача нужна, чтобы это доказать тестами, согласно плану тестирования из спеки («повторный claim с тем же nonce», «claim с поддельной подписью»).
 
-**Interfaces:**
-- Consumes: `claimReward`, `usedNonces`, `signClaim` helper — all from Task 3, unchanged.
+**Интерфейсы:**
+- Использует: `claimReward`, `usedNonces`, хелпер `signClaim` — всё из Задачи 3, без изменений.
 
-- [ ] **Step 1: Write the failing tests**
+- [ ] **Шаг 1: Написать падающие тесты**
 
-Add inside the `describe("claimReward", ...)` block from Task 3:
+Добавить внутрь блока `describe("claimReward", ...)` из Задачи 3:
 
 ```typescript
     it("rejects a second claim reusing the same nonce", async function () {
@@ -418,12 +418,12 @@ Add inside the `describe("claimReward", ...)` block from Task 3:
     });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail or pass as expected**
+- [ ] **Шаг 2: Запустить тесты и проверить результат**
 
-Run: `npx hardhat test`
-Expected: since the contract logic from Task 3 already enforces both checks, these should PASS immediately. If either fails, that means Task 3's implementation has a bug — fix `contracts/AleCoin.sol` before proceeding (do not weaken the test).
+Выполнить: `npx hardhat test`
+Ожидается: поскольку логика контракта из Задачи 3 уже обеспечивает обе проверки, тесты должны сразу пройти (PASS). Если какой-то из них упадёт — значит в реализации из Задачи 3 есть баг: нужно исправить `contracts/AleCoin.sol`, а не ослаблять тест.
 
-- [ ] **Step 3: Commit**
+- [ ] **Шаг 3: Коммит**
 
 ```bash
 git add test/AleCoin.ts
@@ -437,20 +437,20 @@ EOF
 
 ---
 
-### Task 5: Ignition deployment module and Amoy testnet deploy
+### Задача 5: Модуль деплоя Ignition и деплой в тестовую сеть Amoy
 
-**Files:**
-- Create: `ignition/modules/AleCoin.ts`
-- Create: `ignition/parameters/amoy.json`
-- Create: `ignition/parameters/polygon.json`
-- Modify: `README.md` (deploy instructions)
+**Файлы:**
+- Создать: `ignition/modules/AleCoin.ts`
+- Создать: `ignition/parameters/amoy.json`
+- Создать: `ignition/parameters/polygon.json`
+- Изменить: `README.md` (инструкции по деплою)
 
-**Interfaces:**
-- Produces: an Ignition module named `AleCoinModule` exporting `{ token }`, usable both for local test deploys and for `--network amoy` / `--network polygon` live deploys. Later (frontend) plan consumes the deployed address written to `ignition/deployments/chain-80002/deployed_addresses.json` after a real Amoy deploy, plus the ABI from `artifacts/contracts/AleCoin.sol/AleCoin.json`.
+**Интерфейсы:**
+- Результат: модуль Ignition с именем `AleCoinModule`, экспортирующий `{ token }`, пригодный и для локальных тестовых деплоев, и для реального деплоя через `--network amoy` / `--network polygon`. Следующий план (фронтенд) будет использовать адрес, записанный в `ignition/deployments/chain-80002/deployed_addresses.json` после реального деплоя в Amoy, и ABI из `artifacts/contracts/AleCoin.sol/AleCoin.json`.
 
-- [ ] **Step 1: Write the Ignition module**
+- [ ] **Шаг 1: Написать модуль Ignition**
 
-Create `ignition/modules/AleCoin.ts`:
+Создать `ignition/modules/AleCoin.ts`:
 
 ```typescript
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
@@ -465,19 +465,9 @@ export default buildModule("AleCoinModule", (m) => {
 });
 ```
 
-- [ ] **Step 2: Write per-network parameter files**
+- [ ] **Шаг 2: Написать файлы параметров для каждой сети**
 
-Create `ignition/parameters/amoy.json` — replace `"0x..."` with the actual wallet address that should own the token (the project owner's MetaMask address):
-
-```json
-{
-  "AleCoinModule": {
-    "initialOwner": "0x..."
-  }
-}
-```
-
-Create `ignition/parameters/polygon.json` with the same structure (same or different owner address, decided at mainnet-deploy time):
+Создать `ignition/parameters/amoy.json` — заменить `"0x..."` на реальный адрес кошелька, который должен стать владельцем токена (адрес MetaMask владельца проекта):
 
 ```json
 {
@@ -487,15 +477,25 @@ Create `ignition/parameters/polygon.json` with the same structure (same or diffe
 }
 ```
 
-- [ ] **Step 3: Verify the module deploys on Hardhat's local simulated network**
+Создать `ignition/parameters/polygon.json` с той же структурой (тот же или другой адрес владельца — решается на момент деплоя в mainnet):
 
-Run: `npx hardhat ignition deploy ignition/modules/AleCoin.ts --parameters ignition/parameters/amoy.json`
+```json
+{
+  "AleCoinModule": {
+    "initialOwner": "0x..."
+  }
+}
+```
 
-Expected: deploys successfully against the default in-memory network and prints the deployed `AleCoinModule#AleCoin` address. This proves the module and parameter file are wired correctly before touching a real network.
+- [ ] **Шаг 3: Проверить, что модуль деплоится в локальной симулированной сети Hardhat**
 
-- [ ] **Step 4: Document the real Amoy deploy in the README**
+Выполнить: `npx hardhat ignition deploy ignition/modules/AleCoin.ts --parameters ignition/parameters/amoy.json`
 
-Add to `README.md`:
+Ожидается: успешный деплой в дефолтную сеть в памяти, вывод адреса `AleCoinModule#AleCoin`. Это подтверждает, что модуль и файл параметров настроены верно, прежде чем работать с реальной сетью.
+
+- [ ] **Шаг 4: Задокументировать реальный деплой в Amoy в README**
+
+Добавить в `README.md`:
 
 ```markdown
 ## Деплой в Polygon Amoy (тестовая сеть)
@@ -517,7 +517,7 @@ Add to `README.md`:
    задеплоенного контракта, он понадобится для фронтенда.
 ```
 
-- [ ] **Step 5: Commit the module, parameters, and README changes**
+- [ ] **Шаг 5: Закоммитить модуль, параметры и изменения в README**
 
 ```bash
 git add ignition/modules/AleCoin.ts ignition/parameters/amoy.json ignition/parameters/polygon.json README.md
@@ -529,12 +529,12 @@ EOF
 )"
 ```
 
-- [ ] **Step 6: Real Amoy deploy (manual, by the project owner, not automated)**
+- [ ] **Шаг 6: Реальный деплой в Amoy (вручную, силами владельца проекта, не автоматизируется)**
 
-Follow the README section added in Step 4, in your own terminal, with your own `.env`. Once done, come back and commit the resulting `ignition/deployments/chain-80002/` folder — this is the trigger for starting the frontend plan, since it needs the real contract address and ABI.
+Выполнить по инструкции из README (добавлена на Шаге 4), в своём терминале, со своим `.env`. После этого — закоммитить получившуюся папку `ignition/deployments/chain-80002/`. Это и есть триггер для начала плана по фронтенду, которому нужен реальный адрес контракта и ABI.
 
 ---
 
-## After This Plan
+## После этого плана
 
-Once Task 5 Step 6 is done (contract live on Amoy with a committed deployed address), the next plan — frontend (public site + admin page) — can be brainstormed and written, using this contract's address and ABI as its starting artifact.
+Как только выполнен Шаг 6 Задачи 5 (контракт живёт в Amoy, адрес деплоя закоммичен), можно брейнштормить и писать следующий план — фронтенд (публичная часть + админка), используя адрес и ABI этого контракта как стартовый артефакт.
