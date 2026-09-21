@@ -1,0 +1,11 @@
+node_modules/
+.env
+.env.local
+cache/
+artifacts/
+typechain-types/
+coverage/
+coverage.json
+dist/
+.next/
+out/
