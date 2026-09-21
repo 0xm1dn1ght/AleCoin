@@ -81,5 +81,29 @@ describe("AleCoin", function () {
       expect(await token.balanceOf(friend.address)).to.equal(amount);
       expect(await token.usedNonces(nonce)).to.equal(true);
     });
+
+    it("rejects a second claim reusing the same nonce", async function () {
+      const { token, owner, friend } = await deployFixture();
+      const amount = ethers.parseEther("50");
+      const nonce = 1n;
+      const signature = await signClaim(token, owner, friend.address, amount, nonce);
+
+      await token.connect(friend).claimReward(friend.address, amount, nonce, signature);
+
+      await expect(
+        token.connect(friend).claimReward(friend.address, amount, nonce, signature),
+      ).to.be.revertedWith("AleCoin: nonce already used");
+    });
+
+    it("rejects a claim signed by someone other than the owner", async function () {
+      const { token, friend, other } = await deployFixture();
+      const amount = ethers.parseEther("50");
+      const nonce = 2n;
+      const signature = await signClaim(token, other, friend.address, amount, nonce);
+
+      await expect(
+        token.connect(friend).claimReward(friend.address, amount, nonce, signature),
+      ).to.be.revertedWith("AleCoin: invalid signature");
+    });
   });
 });
