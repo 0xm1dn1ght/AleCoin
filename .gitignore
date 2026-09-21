@@ -4,6 +4,7 @@ node_modules/
 cache/
 artifacts/
 typechain-types/
+types/
 coverage/
 coverage.json
 dist/
