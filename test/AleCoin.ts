@@ -42,4 +42,44 @@ describe("AleCoin", function () {
       expect(await token.balanceOf(friend.address)).to.equal(amount);
     });
   });
+
+  describe("claimReward", function () {
+    async function signClaim(
+      token: Awaited<ReturnType<typeof ethers.deployContract>>,
+      signer: Awaited<ReturnType<typeof ethers.getSigners>>[number],
+      to: string,
+      amount: bigint,
+      nonce: bigint,
+    ) {
+      const { chainId } = await ethers.provider.getNetwork();
+      const domain = {
+        name: "AleCoin",
+        version: "1",
+        chainId,
+        verifyingContract: await token.getAddress(),
+      };
+      const types = {
+        Claim: [
+          { name: "to", type: "address" },
+          { name: "amount", type: "uint256" },
+          { name: "nonce", type: "uint256" },
+        ],
+      };
+      return signer.signTypedData(domain, types, { to, amount, nonce });
+    }
+
+    it("transfers tokens to the recipient when the signature is valid", async function () {
+      const { token, owner, friend } = await deployFixture();
+      const amount = ethers.parseEther("50");
+      const nonce = 1n;
+      const signature = await signClaim(token, owner, friend.address, amount, nonce);
+
+      await expect(token.connect(friend).claimReward(friend.address, amount, nonce, signature))
+        .to.emit(token, "RewardClaimed")
+        .withArgs(friend.address, amount, nonce);
+
+      expect(await token.balanceOf(friend.address)).to.equal(amount);
+      expect(await token.usedNonces(nonce)).to.equal(true);
+    });
+  });
 });
