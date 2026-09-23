@@ -1,3 +1,5 @@
 {
-  "AleCoinModule": {}
+  "AleCoinModule": {
+    "initialOwner": "0x58EE5eaB40A56e8243cB80139428BBDee3fad70b"
+  }
 }
