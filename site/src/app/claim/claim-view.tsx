@@ -18,20 +18,15 @@ export function ClaimView() {
     return <p>Ссылка повреждена.</p>;
   }
 
+  const { to, amount, nonce, signature } = claim;
+
   async function handleClaim() {
     setStatus(null);
     try {
       const provider = await connectWallet();
       const signer = await provider.getSigner();
       const contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-      // Non-null assertions: TS doesn't retain the `if (!claim) return` narrowing
-      // across this closure boundary, even though `claim` is a const.
-      const tx = await contract.claimReward(
-        claim!.to,
-        claim!.amount,
-        claim!.nonce,
-        claim!.signature,
-      );
+      const tx = await contract.claimReward(to, amount, nonce, signature);
       await tx.wait();
       setClaimed(true);
       setStatus("Токены получены!");
@@ -44,7 +39,7 @@ export function ClaimView() {
     <main>
       <h1>AleCoin — получить награду</h1>
       <p>
-        Вам полагается {formatEther(claim.amount)} ALE на адрес {claim.to}.
+        Вам полагается {formatEther(amount)} ALE на адрес {to}.
       </p>
       {!claimed && <button onClick={handleClaim}>Получить</button>}
       {status && <p>{status}</p>}
