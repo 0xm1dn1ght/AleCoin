@@ -26,6 +26,7 @@ describe("buildClaimLink / parseClaimLink", () => {
 
     const link = buildClaimLink("https://example.com/AleCoin", params);
     const url = new URL(link);
+    expect(url.pathname).toBe("/AleCoin/claim");
     const parsed = parseClaimLink(url.searchParams);
 
     expect(parsed).toEqual(params);

@@ -16,7 +16,8 @@ export function generateNonce(): bigint {
 }
 
 export function buildClaimLink(baseUrl: string, params: ClaimLinkParams): string {
-  const url = new URL("/claim", baseUrl);
+  const normalizedBase = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+  const url = new URL(`${normalizedBase}/claim`);
   url.searchParams.set("to", params.to);
   url.searchParams.set("amount", params.amount.toString());
   url.searchParams.set("nonce", params.nonce.toString());
