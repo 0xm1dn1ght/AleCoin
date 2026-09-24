@@ -7,7 +7,7 @@ export const CLAIM_TYPES = {
     { name: "amount", type: "uint256" },
     { name: "nonce", type: "uint256" },
   ],
-} as const;
+};
 
 export function getClaimDomain(chainId: number) {
   return {
