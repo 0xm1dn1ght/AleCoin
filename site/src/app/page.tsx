@@ -44,9 +44,14 @@ export default function HomePage() {
     const received = await contract.queryFilter(contract.filters.Transfer(null, address));
     const rewards = await contract.queryFilter(contract.filters.RewardClaimed(address));
 
+    const rewardTxHashes = new Set(rewards.map((event) => event.transactionHash));
+    const receivedWithoutRewards = received.filter(
+      (event) => !rewardTxHashes.has(event.transactionHash),
+    );
+
     const entries: HistoryEntry[] = [
       ...sent.map((event) => toTransferEntry(event as EventLog, "sent")),
-      ...received.map((event) => toTransferEntry(event as EventLog, "received")),
+      ...receivedWithoutRewards.map((event) => toTransferEntry(event as EventLog, "received")),
       ...rewards.map((event) => toRewardEntry(event as EventLog)),
     ];
 

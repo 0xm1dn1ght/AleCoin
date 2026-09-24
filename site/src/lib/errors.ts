@@ -1,6 +1,8 @@
 const REVERT_MESSAGES: Record<string, string> = {
   "AleCoin: nonce already used": "Эта награда уже была получена.",
   "AleCoin: invalid signature": "Ссылка повреждена или недействительна.",
+  "MetaMask не установлен":
+    "MetaMask не установлен. Установите расширение или приложение на metamask.io и обновите страницу.",
 };
 
 const DEFAULT_MESSAGE = "Что-то пошло не так. Попробуйте ещё раз чуть позже.";
@@ -29,8 +31,23 @@ export function translateError(error: unknown): string {
 
 function extractErrorInfo(error: unknown): { code: unknown; text: string } {
   if (error && typeof error === "object") {
-    const err = error as { code?: unknown; message?: unknown; reason?: unknown };
-    const text = [err.message, err.reason].filter(Boolean).join(" ");
+    const err = error as {
+      code?: unknown;
+      message?: unknown;
+      reason?: unknown;
+      shortMessage?: unknown;
+      info?: { error?: { message?: unknown } };
+      error?: { message?: unknown };
+    };
+    const text = [
+      err.message,
+      err.reason,
+      err.shortMessage,
+      err.info?.error?.message,
+      err.error?.message,
+    ]
+      .filter(Boolean)
+      .join(" ");
     return { code: err.code, text };
   }
   return { code: undefined, text: String(error) };

@@ -2,6 +2,7 @@
 const nextConfig = {
   output: "export",
   basePath: "/AleCoin",
+  trailingSlash: true,
   images: {
     unoptimized: true,
   },

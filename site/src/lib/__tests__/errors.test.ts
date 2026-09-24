@@ -22,4 +22,16 @@ describe("translateError", () => {
       "Что-то пошло не так. Попробуйте ещё раз чуть позже.",
     );
   });
+
+  it("translates the MetaMask-not-installed error", () => {
+    const error = new Error("MetaMask не установлен");
+    expect(translateError(error)).toBe(
+      "MetaMask не установлен. Установите расширение или приложение на metamask.io и обновите страницу.",
+    );
+  });
+
+  it("translates a revert reason nested under shortMessage", () => {
+    const error = { shortMessage: "execution reverted: AleCoin: nonce already used" };
+    expect(translateError(error)).toBe("Эта награда уже была получена.");
+  });
 });
