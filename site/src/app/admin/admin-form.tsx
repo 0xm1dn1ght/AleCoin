@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { parseEther } from "ethers";
 import { connectWallet } from "@/lib/wallet";
 import { translateError } from "@/lib/errors";
@@ -23,10 +23,21 @@ export function AdminForm() {
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [copyLabel, setCopyLabel] = useState(COPY_LABEL);
+  const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => cancelCopyReset, []);
+
+  function cancelCopyReset() {
+    if (copyResetTimer.current !== null) {
+      clearTimeout(copyResetTimer.current);
+      copyResetTimer.current = null;
+    }
+  }
 
   async function handleCreate() {
     setStatus(null);
     setLink(null);
+    cancelCopyReset();
     setBusy(BUSY_WALLET);
     try {
       const provider = await connectWallet();
@@ -65,10 +76,14 @@ export function AdminForm() {
     if (!link) {
       return;
     }
+    cancelCopyReset();
     try {
       await navigator.clipboard.writeText(link);
       setCopyLabel("Скопировано");
-      setTimeout(() => setCopyLabel(COPY_LABEL), 2000);
+      copyResetTimer.current = setTimeout(() => {
+        copyResetTimer.current = null;
+        setCopyLabel(COPY_LABEL);
+      }, 2000);
     } catch {
       setCopyLabel("Не получилось — выделите ссылку вручную");
     }
@@ -115,7 +130,10 @@ export function AdminForm() {
                 rows={5}
                 value={link}
                 aria-label="Ссылка на награду"
-                onFocus={(event) => event.target.select()}
+                onFocus={(event) => {
+                  event.target.select();
+                  event.target.setSelectionRange(0, event.target.value.length);
+                }}
                 className="mt-2 w-full resize-none break-all rounded-md border border-line bg-transparent px-3 py-2 font-mono text-sm text-cream focus:border-amber focus:outline-none"
               />
               <Button variant="secondary" onClick={handleCopy} className="mt-3 w-full">
