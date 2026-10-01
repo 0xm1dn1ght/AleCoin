@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { Contract } from "ethers";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/lib/contract";
 import { connectWallet } from "@/lib/wallet";
-import { translateError, isFinalClaimError } from "@/lib/errors";
+import { describeError, isFinalClaimError, type StatusMessage } from "@/lib/errors";
 import { parseClaimLink } from "@/lib/claimLink";
 import { formatAle, shortenAddress, txUrl } from "@/lib/format";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -18,7 +18,7 @@ export function ClaimView() {
   const searchParams = useSearchParams();
   const claim = parseClaimLink(searchParams);
   const [account, setAccount] = useState<string | null>(null);
-  const [status, setStatus] = useState<string | null>(null);
+  const [status, setStatus] = useState<StatusMessage | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [claimTxHash, setClaimTxHash] = useState<string | null>(null);
   const [finalError, setFinalError] = useState(false);
@@ -51,7 +51,7 @@ export function ClaimView() {
       await tx.wait();
       setClaimTxHash(tx.hash);
     } catch (error) {
-      setStatus(translateError(error));
+      setStatus(describeError(error));
       setFinalError(isFinalClaimError(error));
     } finally {
       setBusy(null);
@@ -100,7 +100,7 @@ export function ClaimView() {
       </p>
       {status && (
         <div className="mt-6">
-          <Notice>{status}</Notice>
+          <Notice details={status.details}>{status.text}</Notice>
         </div>
       )}
       {!finalError && (
