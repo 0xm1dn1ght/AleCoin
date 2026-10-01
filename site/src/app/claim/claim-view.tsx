@@ -83,12 +83,16 @@ export function ClaimView() {
   }
 
   const amountTone = finalError ? "opacity-50" : "";
+  const amountText = formatAle(amount);
+  const amountSize = amountText.length > 7 ? "text-4xl" : "text-6xl";
 
   return (
     <ClaimShell account={account}>
       <Eyebrow>Вам награда</Eyebrow>
-      <h1 className={`mt-3 break-all font-display text-6xl font-semibold text-amber ${amountTone}`}>
-        {formatAle(amount)}
+      <h1
+        className={`mt-3 break-all font-display font-semibold text-amber ${amountSize} ${amountTone}`}
+      >
+        {amountText}
       </h1>
       <p className={`font-display text-xl ${amountTone}`}>ALE</p>
       <p className="mt-4 text-sm text-muted">
