@@ -4,8 +4,8 @@ export const BUSY_WALLET = "Подтвердите в MetaMask…";
 export const BUSY_NETWORK = "Ждём сеть…";
 
 const VARIANTS = {
-  primary: "bg-amber text-pub hover:brightness-110",
-  secondary: "border border-amber text-amber hover:bg-glow",
+  primary: "bg-amber text-pub enabled:hover:brightness-110",
+  secondary: "border border-amber text-amber enabled:hover:bg-glow",
 };
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {

@@ -1,6 +1,9 @@
+const NONCE_USED_REASON = "AleCoin: nonce already used";
+const INVALID_SIGNATURE_REASON = "AleCoin: invalid signature";
+
 const REVERT_MESSAGES: Record<string, string> = {
-  "AleCoin: nonce already used": "Эта награда уже была получена.",
-  "AleCoin: invalid signature": "Ссылка повреждена или недействительна.",
+  [NONCE_USED_REASON]: "Эта награда уже была получена.",
+  [INVALID_SIGNATURE_REASON]: "Ссылка повреждена или недействительна.",
   "MetaMask не установлен":
     "MetaMask не установлен. Установите расширение или приложение на metamask.io и обновите страницу.",
 };
@@ -29,7 +32,7 @@ export function translateError(error: unknown): string {
   return DEFAULT_MESSAGE;
 }
 
-const FINAL_CLAIM_REASONS = ["AleCoin: nonce already used", "AleCoin: invalid signature"];
+const FINAL_CLAIM_REASONS = [NONCE_USED_REASON, INVALID_SIGNATURE_REASON];
 
 export function isFinalClaimError(error: unknown): boolean {
   const { text } = extractErrorInfo(error);
