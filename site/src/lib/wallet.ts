@@ -5,12 +5,31 @@ declare global {
   interface Window {
     ethereum?: {
       request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+      on?: (event: string, listener: () => void) => void;
+      removeListener?: (event: string, listener: () => void) => void;
     };
   }
 }
 
-export function hasWallet(): boolean {
+const WALLET_EVENTS = ["accountsChanged", "chainChanged"];
+
+function hasWallet(): boolean {
   return typeof window !== "undefined" && Boolean(window.ethereum);
+}
+
+export function watchWallet(onChange: () => void): () => void {
+  const ethereum = hasWallet() ? window.ethereum : undefined;
+  if (!ethereum?.on) {
+    return () => {};
+  }
+  for (const event of WALLET_EVENTS) {
+    ethereum.on(event, onChange);
+  }
+  return () => {
+    for (const event of WALLET_EVENTS) {
+      ethereum.removeListener?.(event, onChange);
+    }
+  };
 }
 
 export async function connectWallet(): Promise<BrowserProvider> {

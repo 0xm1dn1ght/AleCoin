@@ -4,6 +4,7 @@ import "@fontsource/inter/600.css";
 import "@fontsource/playfair-display/600.css";
 import "@fontsource/playfair-display/800.css";
 import "./globals.css";
+import { WalletWatcher } from "@/components/WalletWatcher";
 
 export const metadata: Metadata = {
   title: "AleCoin",
@@ -17,7 +18,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ru">
-      <body className="flex min-h-dvh flex-col">{children}</body>
+      <body className="flex min-h-dvh flex-col">
+        <WalletWatcher />
+        {children}
+      </body>
     </html>
   );
 }
