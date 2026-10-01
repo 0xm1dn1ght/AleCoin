@@ -69,7 +69,11 @@ export function ClaimView() {
           ✓
         </div>
         <h1 className="mt-4 font-display text-2xl font-semibold">Токены получены!</h1>
-        <p className="mt-2 text-muted">{formatAle(amount)} ALE уже в вашем кошельке</p>
+        <p className="mt-2 text-muted">
+          {account?.toLowerCase() === to.toLowerCase()
+            ? `${formatAle(amount)} ALE уже в вашем кошельке`
+            : `${formatAle(amount)} ALE отправлены на адрес ${shortenAddress(to)}`}
+        </p>
         <a
           href={txUrl(claimTxHash)}
           target="_blank"
