@@ -29,6 +29,13 @@ export function translateError(error: unknown): string {
   return DEFAULT_MESSAGE;
 }
 
+const FINAL_CLAIM_REASONS = ["AleCoin: nonce already used", "AleCoin: invalid signature"];
+
+export function isFinalClaimError(error: unknown): boolean {
+  const { text } = extractErrorInfo(error);
+  return FINAL_CLAIM_REASONS.some((reason) => text.includes(reason));
+}
+
 function extractErrorInfo(error: unknown): { code: unknown; text: string } {
   if (error && typeof error === "object") {
     const err = error as {

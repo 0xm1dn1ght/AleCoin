@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { translateError } from "../errors";
+import { translateError, isFinalClaimError } from "../errors";
 
 describe("translateError", () => {
   it("translates the nonce-already-used revert reason", () => {
@@ -33,5 +33,29 @@ describe("translateError", () => {
   it("translates a revert reason nested under shortMessage", () => {
     const error = { shortMessage: "execution reverted: AleCoin: nonce already used" };
     expect(translateError(error)).toBe("Эта награда уже была получена.");
+  });
+});
+
+describe("isFinalClaimError", () => {
+  it("is true when the reward was already claimed", () => {
+    expect(isFinalClaimError({ reason: "AleCoin: nonce already used" })).toBe(true);
+  });
+
+  it("is true when the signature is invalid", () => {
+    expect(
+      isFinalClaimError({ shortMessage: "execution reverted: AleCoin: invalid signature" }),
+    ).toBe(true);
+  });
+
+  it("is false when the user cancelled in MetaMask", () => {
+    expect(isFinalClaimError({ code: "ACTION_REJECTED" })).toBe(false);
+  });
+
+  it("is false for a network failure", () => {
+    expect(isFinalClaimError(new Error("network error: failed to fetch"))).toBe(false);
+  });
+
+  it("is false for non-object errors", () => {
+    expect(isFinalClaimError("boom")).toBe(false);
   });
 });
