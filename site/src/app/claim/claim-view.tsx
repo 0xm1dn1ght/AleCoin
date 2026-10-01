@@ -8,6 +8,7 @@ import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/lib/contract";
 import { connectWallet } from "@/lib/wallet";
 import { describeError, isFinalClaimError, type StatusMessage } from "@/lib/errors";
 import { parseClaimLink } from "@/lib/claimLink";
+import { getFeeOverrides } from "@/lib/fees";
 import { formatAle, shortenAddress, txUrl } from "@/lib/format";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Panel, Eyebrow } from "@/components/Panel";
@@ -46,7 +47,7 @@ export function ClaimView() {
       const signer = await provider.getSigner();
       setAccount(await signer.getAddress());
       const contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-      const tx = await contract.claimReward(to, amount, nonce, signature);
+      const tx = await contract.claimReward(to, amount, nonce, signature, await getFeeOverrides());
       setBusy(BUSY_NETWORK);
       await tx.wait();
       setClaimTxHash(tx.hash);

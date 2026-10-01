@@ -8,6 +8,7 @@ import { describeError, type StatusMessage } from "@/lib/errors";
 import { formatAle } from "@/lib/format";
 import { fetchHistory, type HistoryEntry } from "@/lib/history";
 import { parseAleAmount, parseRecipient } from "@/lib/input";
+import { getFeeOverrides } from "@/lib/fees";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Panel } from "@/components/Panel";
 import { Button, BUSY_WALLET, BUSY_NETWORK } from "@/components/Button";
@@ -78,6 +79,7 @@ export default function HomePage() {
       const tx = await contract.transfer(
         parseRecipient(transferTo),
         parseAleAmount(transferAmount),
+        await getFeeOverrides(),
       );
       setTransferBusy(BUSY_NETWORK);
       await tx.wait();

@@ -1,5 +1,6 @@
 import { JsonRpcProvider, id, zeroPadValue } from "ethers";
-import { CONTRACT_ADDRESS, NETWORK } from "./contract";
+import { createReadProvider } from "./rpc";
+import { CONTRACT_ADDRESS } from "./contract";
 import { formatAle } from "./format";
 
 export type HistoryEntry = {
@@ -55,7 +56,7 @@ function toEntry(
 // History goes straight to Alchemy instead of through the wallet: the free tier caps
 // eth_getLogs at 10 blocks, so the full history comes from alchemy_getAssetTransfers.
 export async function fetchHistory(account: string): Promise<HistoryEntry[]> {
-  const provider = new JsonRpcProvider(NETWORK.rpcUrl, NETWORK.chainId, { staticNetwork: true });
+  const provider = createReadProvider();
   const [sent, received] = await Promise.all([
     queryTransfers(provider, { fromAddress: account }),
     queryTransfers(provider, { toAddress: account }),
