@@ -1,52 +1,58 @@
 "use client";
 
 import { useState } from "react";
-import { BrowserProvider, Contract, EventLog, parseEther } from "ethers";
+import { BrowserProvider, Contract } from "ethers";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/lib/contract";
 import { connectWallet } from "@/lib/wallet";
-import { translateError } from "@/lib/errors";
+import { describeError, type StatusMessage } from "@/lib/errors";
 import { formatAle } from "@/lib/format";
+import { fetchHistory, type HistoryEntry } from "@/lib/history";
+import { parseAleAmount, parseRecipient } from "@/lib/input";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Panel } from "@/components/Panel";
 import { Button, BUSY_WALLET, BUSY_NETWORK } from "@/components/Button";
 import { TextField } from "@/components/TextField";
 import { Notice } from "@/components/Notice";
 import { Intro } from "./intro";
-import { HistoryList, type HistoryEntry } from "./history-list";
+import { HistoryList } from "./history-list";
 
 export default function HomePage() {
   const [account, setAccount] = useState<string | null>(null);
   const [balance, setBalance] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryEntry[] | null>(null);
-  const [historyFailed, setHistoryFailed] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
   const [transferTo, setTransferTo] = useState("");
   const [transferAmount, setTransferAmount] = useState("");
-  const [status, setStatus] = useState<string | null>(null);
+  const [status, setStatus] = useState<StatusMessage | null>(null);
   const [connectBusy, setConnectBusy] = useState<string | null>(null);
   const [transferBusy, setTransferBusy] = useState<string | null>(null);
 
   async function handleConnect() {
     setStatus(null);
     setConnectBusy(BUSY_WALLET);
+    let connected = false;
     try {
       const provider = await connectWallet();
       const signer = await provider.getSigner();
       const address = await signer.getAddress();
       setAccount(address);
+      connected = true;
       await loadAccountData(provider, address);
     } catch (error) {
-      setStatus(translateError(error));
+      if (!connected) {
+        setStatus(describeError(error));
+      }
     } finally {
       setConnectBusy(null);
     }
   }
 
   async function loadAccountData(provider: BrowserProvider, address: string) {
-    setHistoryFailed(false);
+    setHistoryError(null);
     try {
       await fetchAccountData(provider, address);
     } catch (error) {
-      setHistoryFailed(true);
+      setHistoryError(describeError(error).details);
       throw error;
     }
   }
@@ -56,45 +62,7 @@ export default function HomePage() {
     const rawBalance = await contract.balanceOf(address);
     setBalance(formatAle(rawBalance));
 
-    const sent = await contract.queryFilter(contract.filters.Transfer(address, null));
-    const received = await contract.queryFilter(contract.filters.Transfer(null, address));
-    const rewards = await contract.queryFilter(contract.filters.RewardClaimed(address));
-
-    const rewardTxHashes = new Set(rewards.map((event) => event.transactionHash));
-    const receivedWithoutRewards = received.filter(
-      (event) => !rewardTxHashes.has(event.transactionHash),
-    );
-
-    const entries: HistoryEntry[] = [
-      ...sent.map((event) => toTransferEntry(event as EventLog, "sent")),
-      ...receivedWithoutRewards.map((event) => toTransferEntry(event as EventLog, "received")),
-      ...rewards.map((event) => toRewardEntry(event as EventLog)),
-    ];
-
-    entries.sort((a, b) => b.blockNumber - a.blockNumber);
-    setHistory(entries);
-  }
-
-  function toTransferEntry(event: EventLog, type: "sent" | "received"): HistoryEntry {
-    const [from, to, value] = event.args as unknown as [string, string, bigint];
-    return {
-      type,
-      amount: formatAle(value),
-      counterparty: type === "sent" ? to : from,
-      txHash: event.transactionHash,
-      blockNumber: event.blockNumber,
-    };
-  }
-
-  function toRewardEntry(event: EventLog): HistoryEntry {
-    const [, amount] = event.args as unknown as [string, bigint, bigint];
-    return {
-      type: "reward",
-      amount: formatAle(amount),
-      counterparty: CONTRACT_ADDRESS,
-      txHash: event.transactionHash,
-      blockNumber: event.blockNumber,
-    };
+    setHistory(await fetchHistory(address));
   }
 
   async function handleTransfer() {
@@ -107,17 +75,20 @@ export default function HomePage() {
       const signer = await provider.getSigner();
       address = await signer.getAddress();
       const contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-      const tx = await contract.transfer(transferTo, parseEther(transferAmount));
+      const tx = await contract.transfer(
+        parseRecipient(transferTo),
+        parseAleAmount(transferAmount),
+      );
       setTransferBusy(BUSY_NETWORK);
       await tx.wait();
     } catch (error) {
-      setStatus(translateError(error));
+      setStatus(describeError(error));
       return;
     } finally {
       setTransferBusy(null);
     }
 
-    setStatus("Перевод выполнен.");
+    setStatus({ text: "Перевод выполнен." });
     try {
       await loadAccountData(provider, address);
     } catch {
@@ -134,7 +105,7 @@ export default function HomePage() {
             <Intro onConnect={handleConnect} connectBusy={connectBusy} />
             {status && (
               <div className="mt-6">
-                <Notice>{status}</Notice>
+                <Notice details={status.details}>{status.text}</Notice>
               </div>
             )}
           </>
@@ -172,12 +143,12 @@ export default function HomePage() {
                   <Button onClick={handleTransfer} busy={transferBusy} className="mt-1 w-full">
                     Отправить
                   </Button>
-                  {status && <Notice>{status}</Notice>}
+                  {status && <Notice details={status.details}>{status.text}</Notice>}
                 </div>
               </Panel>
             </div>
             <Panel title="История операций">
-              <HistoryList entries={history} failed={historyFailed} />
+              <HistoryList entries={history} errorDetails={historyError} />
             </Panel>
           </div>
         )}

@@ -1,12 +1,6 @@
 import { shortenAddress, txUrl } from "@/lib/format";
-
-export type HistoryEntry = {
-  type: "sent" | "received" | "reward";
-  amount: string;
-  counterparty: string;
-  txHash: string;
-  blockNumber: number;
-};
+import type { HistoryEntry } from "@/lib/history";
+import { Notice } from "@/components/Notice";
 
 const ICONS: Record<HistoryEntry["type"], string> = {
   reward: "★",
@@ -26,12 +20,16 @@ function describeEntry(entry: HistoryEntry): string {
 
 type HistoryListProps = {
   entries: HistoryEntry[] | null;
-  failed: boolean;
+  errorDetails: string | null;
 };
 
-export function HistoryList({ entries, failed }: HistoryListProps) {
-  if (failed) {
-    return <p className="text-muted">Не удалось загрузить историю. Обновите страницу чуть позже.</p>;
+export function HistoryList({ entries, errorDetails }: HistoryListProps) {
+  if (errorDetails !== null) {
+    return (
+      <Notice details={errorDetails}>
+        Не удалось загрузить историю. Обновите страницу чуть позже.
+      </Notice>
+    );
   }
   if (entries === null) {
     return <p className="text-muted">Загрузка…</p>;
