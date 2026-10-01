@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { parseEther } from "ethers";
 import { connectWallet } from "@/lib/wallet";
-import { translateError } from "@/lib/errors";
+import { describeError, type StatusMessage } from "@/lib/errors";
+import { parseAleAmount, parseRecipient } from "@/lib/input";
 import { generateNonce, buildClaimLink } from "@/lib/claimLink";
 import { signClaim } from "@/lib/signClaim";
 import { BASE_PATH } from "@/lib/contract";
@@ -20,7 +20,7 @@ export function AdminForm() {
   const [to, setTo] = useState("");
   const [amount, setAmount] = useState("");
   const [link, setLink] = useState<string | null>(null);
-  const [status, setStatus] = useState<string | null>(null);
+  const [status, setStatus] = useState<StatusMessage | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [copyLabel, setCopyLabel] = useState(COPY_LABEL);
   const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -40,24 +40,26 @@ export function AdminForm() {
     cancelCopyReset();
     setBusy(BUSY_WALLET);
     try {
+      const recipient = parseRecipient(to);
+      const amountWei = parseAleAmount(amount);
+
       const provider = await connectWallet();
       const signer = await provider.getSigner();
       setAccount(await signer.getAddress());
       const network = await provider.getNetwork();
 
-      const amountWei = parseEther(amount);
       const nonce = generateNonce();
 
       const signature = await signClaim(
         signer,
         Number(network.chainId),
-        to,
+        recipient,
         amountWei,
         nonce,
       );
 
       const claimLink = buildClaimLink(window.location.origin + BASE_PATH, {
-        to,
+        to: recipient,
         amount: amountWei,
         nonce,
         signature,
@@ -66,7 +68,7 @@ export function AdminForm() {
       setLink(claimLink);
       setCopyLabel(COPY_LABEL);
     } catch (error) {
-      setStatus(translateError(error));
+      setStatus(describeError(error));
     } finally {
       setBusy(null);
     }
@@ -118,7 +120,7 @@ export function AdminForm() {
 
           {status && (
             <div className="mt-5">
-              <Notice>{status}</Notice>
+              <Notice details={status.details}>{status.text}</Notice>
             </div>
           )}
 
