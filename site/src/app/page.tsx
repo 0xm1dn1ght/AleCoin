@@ -122,10 +122,14 @@ export default function HomePage() {
         )}
 
         {account && (
-          <div className="grid gap-4 md:grid-cols-[1fr_1.1fr]">
-            <div className="grid content-start gap-4">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+            <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-4">
               <Panel title="Ваш баланс">
-                <p className="font-display text-4xl font-semibold sm:text-5xl">
+                <p
+                  className={`break-all font-display font-semibold ${
+                    (balance ?? "").length > 7 ? "text-3xl" : "text-4xl sm:text-5xl"
+                  }`}
+                >
                   {balance ?? "…"} <span className="text-amber">ALE</span>
                 </p>
               </Panel>
