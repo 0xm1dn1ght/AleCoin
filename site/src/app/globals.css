@@ -21,4 +21,10 @@ html {
   body {
     @apply bg-pub text-cream font-sans antialiased;
   }
+
+  /* Tailwind v4 preflight leaves buttons with the default arrow cursor. */
+  button:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
 }

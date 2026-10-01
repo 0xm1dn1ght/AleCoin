@@ -20,3 +20,5 @@ export const NETWORK = {
 };
 
 export const BASE_PATH = "/AleCoin";
+
+export const OWNER_TELEGRAM_URL = "https://t.me/your_username";

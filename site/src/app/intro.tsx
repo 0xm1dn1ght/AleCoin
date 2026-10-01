@@ -1,5 +1,6 @@
 import { Button } from "@/components/Button";
 import { Panel, Eyebrow } from "@/components/Panel";
+import { OWNER_TELEGRAM_URL } from "@/lib/contract";
 
 const STEPS = [
   "Владелец создаёт награду и подписывает её в MetaMask",
@@ -41,8 +42,16 @@ export function Intro({ onConnect, connectBusy }: IntroProps) {
         </ol>
       </Panel>
       <p className="text-sm text-muted md:col-span-2">
-        Получили ссылку на награду? Просто откройте её. Ссылки нет — напишите владельцу в
-        Telegram.
+        Получили ссылку на награду? Просто откройте её. Ссылки нет — напишите владельцу в{" "}
+        <a
+          href={OWNER_TELEGRAM_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline decoration-cream/30 underline-offset-2 transition hover:text-amber hover:decoration-amber"
+        >
+          Telegram
+        </a>
+        .
       </p>
     </div>
   );
