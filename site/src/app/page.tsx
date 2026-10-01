@@ -17,7 +17,8 @@ import { HistoryList, type HistoryEntry } from "./history-list";
 export default function HomePage() {
   const [account, setAccount] = useState<string | null>(null);
   const [balance, setBalance] = useState<string | null>(null);
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [history, setHistory] = useState<HistoryEntry[] | null>(null);
+  const [historyFailed, setHistoryFailed] = useState(false);
   const [transferTo, setTransferTo] = useState("");
   const [transferAmount, setTransferAmount] = useState("");
   const [status, setStatus] = useState<string | null>(null);
@@ -41,6 +42,16 @@ export default function HomePage() {
   }
 
   async function loadAccountData(provider: BrowserProvider, address: string) {
+    setHistoryFailed(false);
+    try {
+      await fetchAccountData(provider, address);
+    } catch (error) {
+      setHistoryFailed(true);
+      throw error;
+    }
+  }
+
+  async function fetchAccountData(provider: BrowserProvider, address: string) {
     const contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
     const rawBalance = await contract.balanceOf(address);
     setBalance(formatAle(rawBalance));
@@ -89,20 +100,28 @@ export default function HomePage() {
   async function handleTransfer() {
     setStatus(null);
     setTransferBusy(BUSY_WALLET);
+    let provider: BrowserProvider;
+    let address: string;
     try {
-      const provider = await connectWallet();
+      provider = await connectWallet();
       const signer = await provider.getSigner();
+      address = await signer.getAddress();
       const contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
       const tx = await contract.transfer(transferTo, parseEther(transferAmount));
       setTransferBusy(BUSY_NETWORK);
       await tx.wait();
-      setStatus("Перевод выполнен.");
-      const address = await signer.getAddress();
-      await loadAccountData(provider, address);
     } catch (error) {
       setStatus(translateError(error));
+      return;
     } finally {
       setTransferBusy(null);
+    }
+
+    setStatus("Перевод выполнен.");
+    try {
+      await loadAccountData(provider, address);
+    } catch {
+      // The transfer itself succeeded; a failed refresh is shown in the history panel.
     }
   }
 
@@ -158,7 +177,7 @@ export default function HomePage() {
               </Panel>
             </div>
             <Panel title="История операций">
-              <HistoryList entries={history} />
+              <HistoryList entries={history} failed={historyFailed} />
             </Panel>
           </div>
         )}

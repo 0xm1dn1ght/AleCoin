@@ -24,7 +24,18 @@ function describeEntry(entry: HistoryEntry): string {
   return `Получено от ${shortenAddress(entry.counterparty)}`;
 }
 
-export function HistoryList({ entries }: { entries: HistoryEntry[] }) {
+type HistoryListProps = {
+  entries: HistoryEntry[] | null;
+  failed: boolean;
+};
+
+export function HistoryList({ entries, failed }: HistoryListProps) {
+  if (failed) {
+    return <p className="text-muted">Не удалось загрузить историю. Обновите страницу чуть позже.</p>;
+  }
+  if (entries === null) {
+    return <p className="text-muted">Загрузка…</p>;
+  }
   if (entries.length === 0) {
     return <p className="text-muted">Операций пока нет.</p>;
   }
