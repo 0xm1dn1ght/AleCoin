@@ -3,7 +3,7 @@ import { ClaimView } from "./claim-view";
 
 export default function ClaimPage() {
   return (
-    <Suspense fallback={<p>Загрузка…</p>}>
+    <Suspense fallback={<p className="p-10 text-center text-muted">Загрузка…</p>}>
       <ClaimView />
     </Suspense>
   );
