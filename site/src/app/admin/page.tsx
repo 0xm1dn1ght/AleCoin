@@ -6,10 +6,5 @@ export const metadata: Metadata = {
 };
 
 export default function AdminPage() {
-  return (
-    <main>
-      <h1>AleCoin — выдача наград</h1>
-      <AdminForm />
-    </main>
-  );
+  return <AdminForm />;
 }
