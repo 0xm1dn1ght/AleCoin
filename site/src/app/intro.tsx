@@ -45,8 +45,9 @@ export function Intro({ onConnect, connectBusy }: IntroProps) {
         Получили ссылку на награду? Просто откройте её. Ссылки нет — напишите владельцу в{" "}
         <a
           href={OWNER_TELEGRAM_URL}
-          target="_blank"
-          rel="noopener noreferrer"
+          {...(OWNER_TELEGRAM_URL.startsWith("http")
+            ? { target: "_blank", rel: "noopener noreferrer" }
+            : {})}
           className="underline decoration-cream/30 underline-offset-2 transition hover:text-amber hover:decoration-amber"
         >
           Telegram
